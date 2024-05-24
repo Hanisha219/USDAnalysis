@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>USDA Food Data Web Data Connector</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://public.tableau.com/javascripts/api/tableau-2.8.0.min.js"></script>
+</head>
+<body>
+    <h1>USDA Food Data Web Data Connector</h1>
+    <form id="form">
+        <label for="query">Search Query:</label>
+        <input type="text" id="query" name="query">
+        <button type="button" id="submitButton">Submit</button>
+    </form>
+
+    <script type="text/javascript">
+        (function() {
+            var myConnector = tableau.makeConnector();
+
+            myConnector.getSchema = function(schemaCallback) {
+                var cols = [{
+                    id: "fdcId",
+                    alias: "FDC ID",
+                    dataType: tableau.dataTypeEnum.int
+                }, {
+                    id: "description",
+                    alias: "Description",
+                    dataType: tableau.dataTypeEnum.string
+                }];
+
+                var tableSchema = {
+                    id: "usdaFoodData",
+                    alias: "USDA Food Data",
+                    columns: cols
+                };
+
+                schemaCallback([tableSchema]);
+            };
+
+            myConnector.getData = function(table, doneCallback) {
+                var query = tableau.connectionData;
+
+                $.getJSON(`https://api.nal.usda.gov/fdc/v1/foods/search?api_key=af3F5a882p0cQsZrZMoey7kFjX7c6mjqecNB7RiI&query=${query}`, function(resp) {
+                    var tableData = [];
+                    var foods = resp.foods;
+
+                    for (var i = 0; i < foods.length; i++) {
+                        tableData.push({
+                            "fdcId": foods[i].fdcId,
+                            "description": foods[i].description
+                        });
+                    }
+
+                    table.appendRows(tableData);
+                    doneCallback();
+                });
+            };
+
+            tableau.registerConnector(myConnector);
+
+            $(document).ready(function() {
+                $("#submitButton").click(function() {
+                    var query = $('#query').val().trim();
+                    if (query) {
+                        tableau.connectionData = query;
+                        tableau.connectionName = "USDA Food Data";
+                        tableau.submit();
+                    }
+                });
+            });
+        })();
+    </script>
+</body>
+</html>
